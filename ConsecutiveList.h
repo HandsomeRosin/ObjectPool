@@ -1,15 +1,53 @@
 #pragma once
-#include <forward_list>
-#include <mutex>
+#include <atomic>
 
 class ConsecutiveList {
 private:
-	void* ptr;   // Ö¸ÏòÒ»¿éÁ¬ĞøµÄÄÚ´æ
-	void* upper_bound_address;   // ptrËùÖ¸µÄÁ¬ĞøÄÚ´æµÄÉÏ½ç
-	std::forward_list<void*> list;   // ÓÃÓÚ´æ·ÅÖ¸ÕëÁ´±í£¬Á´±íÖĞµÄÖ¸ÕëÖ¸ÏòÁ¬ĞøÄÚ´æÖĞµÄÃ¿¸ö¶ÔÏóÆğÊ¼µØÖ·
-	const size_t el_size;   // ¶ÔÏó´óĞ¡
-	const size_t el_num;    // ÄÚ´æÖĞ¿É´æµÄ¶ÔÏóÊı
-	std::mutex mutex_;
+	void* ptr;   // æŒ‡å‘ä¸€å—è¿ç»­çš„å†…å­˜
+	void* upper_bound_address;   // ptræ‰€æŒ‡çš„è¿ç»­å†…å­˜çš„ä¸Šç•Œ
+
+	// æ— é”æ ˆï¼ˆé‡‡ç”¨é“¾è¡¨ç»“æ„ï¼‰
+	class LockFreeList {
+	private:
+		struct Node {
+			Node* next;
+			void* ptr;
+		};
+
+		std::atomic<Node*> head;
+	public:
+		bool empty() {
+			return head.load() == NULL;
+		}
+
+		void push(void*);
+		void* pop();
+	} list;   // ç”¨äºå­˜æ”¾æŒ‡é’ˆé“¾è¡¨ï¼Œé“¾è¡¨ä¸­çš„æŒ‡é’ˆæŒ‡å‘è¿ç»­å†…å­˜ä¸­çš„æ¯ä¸ªå¯¹è±¡èµ·å§‹åœ°å€
+
+	// ä¸ºäº†ä¿è¯æ— è®ºä»€ä¹ˆæƒ…å†µä¸‹æŒ‡å‘å †å¯¹è±¡çš„æŒ‡é’ˆæœ€åéƒ½èƒ½è°ƒç”¨delete
+	template<class T>
+	struct DeleteGuard {
+		T* obj;
+		DeleteGuard(T* ptr = NULL) : obj(ptr) { }
+		~DeleteGuard() {
+			if (obj != NULL) {
+				delete obj;
+			}
+		}
+
+		T* operator->() {
+			return obj;
+		}
+		void operator=(T* ptr) {
+			obj = ptr;
+		}
+		bool isNULL() {
+			return obj == NULL;
+		}
+	};
+
+	const size_t el_size;   // å¯¹è±¡å¤§å°
+	const size_t el_num;    // å†…å­˜ä¸­å¯å­˜çš„å¯¹è±¡æ•°
 public:
 	ConsecutiveList(size_t _el_num, size_t _el_size);
 	void* get();
