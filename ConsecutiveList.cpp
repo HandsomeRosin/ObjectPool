@@ -1,6 +1,7 @@
 #include "ConsecutiveList.h"
-#include <iostream>
+
 using namespace std;
+
 ConsecutiveList::ConsecutiveList(size_t _el_num, size_t _el_size):
 	el_num(_el_num),
 	el_size(_el_size),
@@ -13,25 +14,22 @@ ConsecutiveList::ConsecutiveList(size_t _el_num, size_t _el_size):
 	int loop = el_num - 1;
 	char* p = (char*)ptr;
 	do {
-		list.push_front(p);
+		list.push(p);
 		p += el_size;
 	} while (loop--);
 }
 
 void* ConsecutiveList::get() {
-	std::lock_guard<std::mutex> guard(mutex_);
 	if (list.empty()) {
 		return NULL;
 	}
-	void* temp = list.front();
-	list.pop_front();
+	void* temp = list.pop();
 	return temp;
 }
 
 void ConsecutiveList::put(void* p) {
 	if (p >= ((void*)ptr) && p < upper_bound_address) {
-		std::lock_guard<std::mutex> guard(mutex_);
-		list.push_front(p);
+		list.push(p);
 		return;
 	}
 	free(p);
@@ -39,4 +37,27 @@ void ConsecutiveList::put(void* p) {
 
 ConsecutiveList::~ConsecutiveList() {
 	free(ptr);
+}
+
+void ConsecutiveList::LockFreeList::push(void* p) {
+	DeleteGuard<Node> node(new Node);
+	node->ptr = p;
+
+	do {
+		node->next = head.load();
+	} while (!head.compare_exchange_weak(node->next, node.obj));
+
+	node.obj = NULL;
+}
+
+void* ConsecutiveList::LockFreeList::pop() {
+	DeleteGuard<Node> node;
+	do {
+		node = head.load();
+		if (node.isNULL()) {
+			return NULL;
+		}
+	} while (!head.compare_exchange_weak(node.obj, node->next)); 
+
+	return node->ptr;
 }
