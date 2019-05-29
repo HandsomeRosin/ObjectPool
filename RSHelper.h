@@ -1,6 +1,4 @@
 #pragma once
-#include <mutex>
-#include <iostream>
 
 #include "ConsecutiveList.h"
 
@@ -13,7 +11,7 @@ private:
 	public:
 		RSManager(): list(S, sizeof(T)) { }
 
-		// µÃµ½Ò»¸öÖ¸Ïò¿ÉÓÃÓÚ³õÊ¼»¯¶ÔÏóµÄÄÚ´æµÄÖ¸Õë
+		// å¾—åˆ°ä¸€ä¸ªæŒ‡å‘å¯ç”¨äºåˆå§‹åŒ–å¯¹è±¡çš„å†…å­˜çš„æŒ‡é’ˆ
 		void* get(size_t size) {
 			void* temp = list.get();
 			if (temp == NULL) {
@@ -22,7 +20,7 @@ private:
 			return temp;
 
 		}
-		// »ØÊÕÒ»¸öÓÉgetµÃµ½µÄÖ¸Õë£¬ÓĞ¿ÉÄÜ·Å»ØÁ´±í£¬ÓĞ¿ÉÄÜfree
+		// å›æ”¶ä¸€ä¸ªç”±getå¾—åˆ°çš„æŒ‡é’ˆï¼Œæœ‰å¯èƒ½æ”¾å›é“¾è¡¨ï¼Œæœ‰å¯èƒ½free
 		void put(void* t) {
 			list.put(t);
 		}
